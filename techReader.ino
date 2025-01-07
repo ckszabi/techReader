@@ -1,43 +1,33 @@
 #include <ArduinoMqttClient.h>
 #include <ESP8266WiFi.h>
 #include "settings.h"
-#include "uartReceive.h"
 #include "keyValuePairs.h"
-#include "mappings.h"
+#include "mappings_1.h"
+#include "UARTKeyValueReader.h"
 
 WiFiClient wifiClient;
 MqttClient mqttClient(wifiClient);
+UARTKeyValueReader reader1(rxPin, txPin, &mqttClient, &nameMapping1, "Port_1");
 
-unsigned long currentMillis = 0;
-unsigned long previousMillis = 0;
-unsigned long lastReadMillis = 0;
-unsigned long mqttConnectCounter = 0;
+#ifdef useSecondSerial
+#include "mappings_2.h"
+UARTKeyValueReader reader2(rxPin2, txPin2, &mqttClient, &nameMapping2, "Port_2");
+#endif
 
-keyValuePairs<int, String> keyValueStore;
+bool reader1IsCurrent = true;
 
 void setup() {
-  setup_pins();
-  
-  // Set the baud rate for the SoftwareSerial object
-  mySerial.begin(9600);
+  Serial.begin(serialBaud);
 
-  // Start serial monitor for debugging
-  Serial.begin(9600);
+  reader1.begin(serialBaud);
+  reader1.listen();
+
+#ifdef useSecondSerial
+  reader2.begin(serialBaud);
+#endif
 
   setup_wifi();
   setup_mqtt();
-
-  mqttConnect(true);
-
-}
-
-void setup_pins() {
-  // Define pin modes for TX and RX
-  pinMode(rxPin, INPUT);
-  pinMode(txPin, OUTPUT);
-
-  // Setup build in LED
-  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void setup_wifi() {
@@ -55,103 +45,34 @@ void setup_wifi() {
 void setup_mqtt() {
   mqttClient.setId(mqttId);
   mqttClient.setUsernamePassword(mqttUsername, mqttPassword);
-}
 
-/**
-returns connection status, which is other than zero on error
-**/
-int mqttConnect(bool wait) {
-  Serial.print("Attempting to connect to the MQTT broker: ");
-  Serial.println(mqttBroker);
-  //mqttClient.setId(String(mqttId) + String(" - ") + String(++mqttConnectCounter));
-  if (!mqttClient.connect(mqttBroker, mqttPort)) {
-    Serial.print("MQTT connection failed! Error code = ");
-    Serial.println(mqttClient.connectError());
-
-    if (wait) {
-      while (1);
-    }
-  } else {
-    Serial.println("You're connected to the MQTT broker!");
-    Serial.println();
-  }
-
- 
-  return mqttClient.connectError(); // return status
-}
-
-String getMappedKeyName(int key) {
-  // Serial.print("lookup for key: ");
-  // Serial.println(key);
-  String mappedName = "";
-  String *foundName = nameMapping.find (key);
-  if (foundName != NULL) {
-    // Serial.print("found: ");
-    // Serial.println(*foundName);
-    mappedName = (String)mqttId + (String)'/' + *foundName;
-  } else {
-    Serial.print("Number: ");
-    Serial.print(key);
-    Serial.println(" not found in mapping -> ignored. You should add this key to mappings.h .");
-    mappedName = (String)mqttId + (String)"/Unknown/" + (String)key;
-  }
-
-  return mappedName;
-}
-
-void sendMqttMessage() {
-  currentMillis = millis();
-
-  // 1. Wait on timeout from setting.h
-  // 2. Wait on silence from controller
-  if (currentMillis - previousMillis >= mqttSendInterval || currentMillis - lastReadMillis > 1500) {
-    // save the last time a message was sent
-    previousMillis = currentMillis;
-    lastReadMillis = currentMillis;
-
-    Serial.println("Sending messages to MQTT server.");
-
-    if(!mqttClient.connected()) { // if the client has been disconnected,
-      Serial.println("Client disconnected, attempting reconnection");
-      Serial.println();
-
-      if (!mqttConnect(false)) {
-        Serial.print("Client reconnected!");
-        Serial.println();
-      }
-      delay(1000);
-    }
-
-    // Iterate over keyValueStrore and add all entries to mqtt message
-    for (auto keyValuePair : keyValueStore){
-      String mqttMessage = getMappedKeyName(keyValuePair.key);
-      
-      // Ignore all messages théy don't have a mapping
-      // If you miss a message, please add a mapping to mappings.h
-      if (!mqttMessage.equals("")){
-        mqttClient.beginMessage(mqttMessage);
-        mqttClient.print(keyValuePair.value);
-        mqttClient.endMessage();
-
-        // Serial.print("Sending mqtt message to topic: ");
-        // Serial.print(mqttMessage);
-        // Serial.print(" value: ");
-        // Serial.println(keyValuePair.value);
-      }
-    }
-    
-    // Clear key value store after sending to server
-    keyValueStore.clear();
-  }
+  mqttConnect(&mqttClient, true);
 }
 
 void loop() {
-  unsigned long lastReadMillisTemp = readKeyValuePair(&keyValueStore);
-  if (lastReadMillisTemp != 0) {
-    lastReadMillis = lastReadMillisTemp;
+
+  if (reader1IsCurrent) {
+    if (reader1.isPublished()) {
+#ifdef useSecondSerial
+      reader1IsCurrent = false;
+      reader2.listen();
+#else
+      reader1.listen();
+#endif
+    } else {
+      reader1.loop();
+    }
   }
-  sendMqttMessage();
+
+
+#ifdef useSecondSerial
+  if (!reader1IsCurrent) {
+    if (reader2.isPublished()) {
+      reader1IsCurrent = true;
+      reader1.listen();
+    } else {
+      reader2.loop();
+    }
+  }
+#endif
 }
-
-
-

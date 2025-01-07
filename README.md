@@ -7,6 +7,13 @@ The Wemos D1 mini will receive those signals from the tech controllers
 Convert the signals to an internal key-value-store
 After a timeout (default 10s) the last received values are send to a customisable MQTT Server (ioBroker, home assistant, ... )
 
+# Advanced use
+
+It might happen that the TECH device you want to connect to has 2 ports: one for controller, one for another module. 
+The code can read UART data from 2 different ports - to gather all the data possible from both ports.
+
+For example the room regulator's set temperature wasn't available on 'controller port' of a i-1 valve controller, but it is published and available on the 'module port' of the same i-1 valve controller.
+
 # What do you need ?
 
 - Wemos D1 mini

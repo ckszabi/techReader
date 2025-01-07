@@ -4,7 +4,7 @@
 //.     https://github.com/TomasWallflower/Tech-CS-505/blob/master/CODES.txt
 //.     https://dzien.net/tech/index.php?baza=slownik
 
-keyValuePairs<int, String> nameMapping {
+keyValuePairs<int, String> nameMapping1 {
 //    [0000] => None 
 //    [0001] => Test 
 //    [0002] => Run 
@@ -247,7 +247,7 @@ keyValuePairs<int, String> nameMapping {
 //    [0029] => alarm: Valve sensor damaged 
 //    [0052] => supervision mode 
 //    [0050] => support (operation without PID), ST-755 controller with PID Stalmark 
-{5500,"Driver status"},
+{5500,"Driver status (1)"},
 {5501,"Measured central heating temperature"},
 {5502,"Set central heating temperature"},
 //    [0001] => enabled 
@@ -298,7 +298,7 @@ keyValuePairs<int, String> nameMapping {
 {5623,"Temp. turning on the floor pump"},
 {5647,"Temp. max floors"},
 {5648,"Standby"},
-{5652,"Valve temperature"},
+{5652,"Valve temperature (1)"},
 {5654,"Set hot water temperature	"},
 {5668,"Valve type"},
 //    [0000] => stop 
@@ -324,10 +324,10 @@ keyValuePairs<int, String> nameMapping {
 {5791,"minMax hot water"},
 //    [0000] => stop 
 //    [0001] => run 
-{5806,"Additional pump"},
+{5806,"Additional pump state"},
 //    [0005] => disabled 
 //    [0003] => enabled 
-{5808,"Additional pump"},
+{5808,"Additional pump operation"},
 //    [0000] => stop 
 //    [0001] => run 
 {5814,"Circulation pump"},
