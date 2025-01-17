@@ -32,24 +32,19 @@ PIN 6 VCC 12V
 
 PIN 3 RX
 
-Connect GND and VCC to the voltage regulator and RX to D1 of your Wemos D1 mini.
-
-Customise the settings.h
-
-In Arduino Studio download ArduinoMqttClient and ESP8266WiFi libs.
-
-Choose 160 Mhz as CPU speed for the Wemos D1 mini board from the tools menu
-
-Increase the buffer size in SoftwareSerial.h from 64 to 256
-
-Flash the code to the Wemos D1 mini with Arduino Studio.
-
-Connect the Wemos D1 Mini to your tech controller.
+- Connect GND and VCC to the voltage regulator and RX to D1 of your Wemos D1 mini.
+- Customise the settings.h
+- In Arduino Studio download ArduinoMqttClient and ESP8266WiFi libs.
+- Choose 160 Mhz as CPU speed for the Wemos D1 mini board from the tools menu
+- Increase the buffer size in SoftwareSerial.h from 64 to 256
+- Flash the code to the Wemos D1 mini with Arduino Studio.
+- Connect the Wemos D1 Mini to your tech controller.
+- Inspect the published MQTT messages
 
 Have fun.
 
 # Notes:
-Support read only.
+Data is read-only. It is not possible to send commands to the controller.
 
 Can look like:
 
