@@ -14,6 +14,10 @@ The code can read UART data from 2 different ports - to gather all the data poss
 
 For example the room regulator's set temperature wasn't available on 'controller port' of a i-1 valve controller, but it is published and available on the 'module port' of the same i-1 valve controller.
 
+Please observe the `settings.h` file and adjust the options: 
+- read on a second port or not?
+- that second port is a Software serial port or the Hardware port (note that in case of using the hardware port then it can't be used for debugging in the same time)
+
 # What do you need ?
 
 - Wemos D1 mini

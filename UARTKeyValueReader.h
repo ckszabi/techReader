@@ -4,7 +4,7 @@
 
 class UARTKeyValueReader {
 private:
-  SoftwareSerial mySerial;
+  Stream* mySerial; // Generic Stream pointer (works with HardwareSerial & SoftwareSerial)
   int firstByte = 0;
   uint key = 0;
   uint value = 0;
@@ -25,20 +25,13 @@ private:
 
   String portName;
 
-public:
-  UARTKeyValueReader(int rxPin, int txPin, MqttClient* _mqttClient, keyValuePairs<int, String>* _nameMapping, String _portName)
-    : mySerial(rxPin, txPin, true), mqttClient(_mqttClient), nameMapping(_nameMapping), portName(_portName) {
-      pinMode(rxPin, INPUT);
-      pinMode(txPin, OUTPUT);
-      pinMode(LED_BUILTIN, OUTPUT);
-  }
 
-  void begin(long baudRate) {
-    mySerial.begin(baudRate);
+public:
+  UARTKeyValueReader(Stream* serialInterface, MqttClient* _mqttClient, keyValuePairs<int, String>* _nameMapping, String _portName)
+    : mySerial(serialInterface), mqttClient(_mqttClient), nameMapping(_nameMapping), portName(_portName) {
   }
 
   void listen() {
-    mySerial.listen();
     published = false;
 
     currentMillis = millis();
@@ -127,17 +120,17 @@ private:
 
   uint16_t read2Bytes() {
     uint16_t returnValue = 0;
-    if (mySerial.available() > 0) {
+    if (mySerial->available() > 0) {
       // Flash LED to indicate read
       digitalWrite(LED_BUILTIN, LOW);
 
       if (firstByteReceived == true) {
-        returnValue = (firstByte << 8) | mySerial.read();
+        returnValue = (firstByte << 8) | mySerial->read();
         firstByte = 0;
         firstByteReceived = false;
         secondByteReceived = true;
       } else {
-        firstByte = mySerial.read();
+        firstByte = mySerial->read();
         firstByteReceived = true;
       }
 

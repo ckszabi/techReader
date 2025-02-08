@@ -22,13 +22,19 @@ const int serialBaud = 9600;
 const int txPin =12;  // D1 GPIO5, D2 GPIO4,  D5 GPIO14, D6 GPIO12
 const int rxPin =5; 
 
-// use the harware UART for the secondary port communication?
-// comment out if not desired
+// comment out if not desired and only one port is wired
 #define useSecondSerial
+
 #ifdef useSecondSerial
-const int txPin2 =14;  // D1 GPIO5, D2 GPIO4,  D5 GPIO14, D6 GPIO12
-const int rxPin2 =4; 
+   // use the harware UART for the secondary port communication? comment out if not desired
+  //#define useHardwareForSecondSerial
+
+  // otherwise use SoftwareSerial on the second pair of pins
+  const int txPin2 =14;  // D1 GPIO5, D2 GPIO4,  D5 GPIO14, D6 GPIO12
+  const int rxPin2 =4; 
 #endif
 
-// Print Serial debugging messages
-#define debug
+// Print Serial debugging messages, but only when the harware Serial is not used for TECH reading
+#ifndef useHardwareForSecondSerial
+  #define debug
+#endif
