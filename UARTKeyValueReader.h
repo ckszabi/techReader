@@ -13,6 +13,9 @@ private:
   bool keyReceived = false;
   bool valueReceived = false;
   bool published = false;
+  bool awaitNextListen = true; // after publish have to wait for another listen() call for publishing to be allowed?
+  bool dataFrameEnd = false;
+  bool dataFrameBegin = false;
 
   MqttClient* mqttClient;
   keyValuePairs<int, String> keyValueStore;
@@ -31,8 +34,9 @@ public:
     : mySerial(serialInterface), mqttClient(_mqttClient), nameMapping(_nameMapping), portName(_portName) {
   }
 
-  void listen() {
+  void listen(bool awaitNext) {
     published = false;
+    awaitNextListen = awaitNext;
 
     currentMillis = millis();
     previousPublishMillis = currentMillis;
@@ -43,6 +47,7 @@ public:
     return published;
   }
 
+
   void loop() {
     
     unsigned long lastReadMillisTemp = readKeyValuePair();
@@ -52,16 +57,17 @@ public:
 
     currentMillis = millis();
 
-    // 1. Wait on timeout from setting.h
-    // 2. Wait on silence from controller
-    if (!published && (currentMillis - previousPublishMillis >= mqttSendInterval)) { // || currentMillis - lastReadMillis > 2500
+    // wait until we got data between frame begin and end
+    if (!published && dataFrameBegin && dataFrameEnd) {
       previousPublishMillis = currentMillis;
       lastReadMillis = currentMillis;  // reset the silence detection
+      dataFrameEnd = false;
+      dataFrameBegin = false;
 
       Serial.print("Publishing on ");
       Serial.println(portName);
       sendMqttMessage(mqttClient, &keyValueStore, nameMapping, portName);
-      published = true;
+      published = awaitNextListen;
     }
   }
 
@@ -98,6 +104,14 @@ private:
         Serial.println("---------- End data frame ---------");
       }
       #endif
+
+      if (dataFrameBegin && key == 536) {
+        dataFrameEnd = true;
+      }
+
+      if (key == 550) {
+        dataFrameBegin = true;
+      }
 
       lastReadMillis = millis();
 

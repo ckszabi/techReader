@@ -26,15 +26,10 @@ const int rxPin =5;
 #define useSecondSerial
 
 #ifdef useSecondSerial
-   // use the harware UART for the secondary port communication? comment out if not desired
-  //#define useHardwareForSecondSerial
-
-  // otherwise use SoftwareSerial on the second pair of pins
+  // use SoftwareSerial on the second pair of pins
   const int txPin2 =14;  // D1 GPIO5, D2 GPIO4,  D5 GPIO14, D6 GPIO12
   const int rxPin2 =4; 
 #endif
 
-// Print Serial debugging messages, but only when the harware Serial is not used for TECH reading
-#ifndef useHardwareForSecondSerial
-  #define debug
-#endif
+// Print Serial debugging messages?
+#define debug

@@ -12,12 +12,8 @@ UARTKeyValueReader reader1(&mySoftSerial1, &mqttClient, &nameMapping1, "Port_1")
 
 #ifdef useSecondSerial
   #include "mappings_2.h"
-  #ifdef useHardwareForSecondSerial
-    UARTKeyValueReader reader2(&Serial, &mqttClient, &nameMapping1, "Port_2");
-  #else
-    SoftwareSerial mySoftSerial2(rxPin2, txPin2, true); 
-    UARTKeyValueReader reader2(&mySoftSerial2, &mqttClient, &nameMapping2, "Port_2");
-  #endif
+  SoftwareSerial mySoftSerial2(rxPin2, txPin2, true); 
+  UARTKeyValueReader reader2(&mySoftSerial2, &mqttClient, &nameMapping2, "Port_2");
 #endif
 
 bool reader1IsCurrent = true;
@@ -28,18 +24,20 @@ void setup() {
   pinMode(rxPin, INPUT);
   pinMode(txPin, OUTPUT);
   
-  reader1.listen();
+  mySoftSerial1.begin(serialBaud);
+  #if defined(useSecondSerial)
+    reader1.listen(true);
+  #else
+    reader1.listen(false);
+  #endif  
+
 
 #ifdef useSecondSerial
-  #ifdef useHardwareForSecondSerial
-    Serial.begin(serialBaud, SERIAL_8N1, SERIAL_RX_ONLY, 1, true);
-  #else
-    pinMode(rxPin2, INPUT);
-    pinMode(txPin2, OUTPUT);
-    
-    mySoftSerial2.begin(serialBaud);
-    Serial.begin(serialBaud); // normal debugging
-  #endif
+  pinMode(rxPin2, INPUT);
+  pinMode(txPin2, OUTPUT);
+  
+  mySoftSerial2.begin(serialBaud);
+  Serial.begin(serialBaud); // normal debugging
 #else
   Serial.begin(serialBaud); // normal debugging
 #endif
@@ -71,16 +69,12 @@ void loop() {
 #ifndef useSecondSerial
   reader1.loop();
 #else
-  #ifdef useHardwareForSecondSerial
-    parallelLoop();
-  #else
-    alternateLoop();
-  #endif
+  alternateLoop();
 #endif
   
 }
 
-#if defined(useSecondSerial) && !defined(useHardwareForSecondSerial)
+#if defined(useSecondSerial)
   // when 1 or 2 serials need to be used, and these are SoftwareSerials
   // then need to alternate between them
   void alternateLoop() {
@@ -88,7 +82,7 @@ void loop() {
       if (reader1.isPublished()) {
         reader1IsCurrent = false;
         mySoftSerial2.listen();
-        reader2.listen();
+        reader2.listen(true);
       } else {
         reader1.loop();
       }
@@ -98,19 +92,10 @@ void loop() {
       if (reader2.isPublished()) {
         reader1IsCurrent = true;
         mySoftSerial1.listen();
-        reader1.listen();
+        reader1.listen(true);
       } else {
         reader2.loop();
       }
     }
   }
-#endif  
-
-
-#if defined(useSecondSerial) && defined(useHardwareForSecondSerial) 
-// one SoftwareSerial and one hardware Serial can work simultaneously 
-void parallelLoop() {
-  reader1.loop();
-  reader2.loop();
-}
 #endif
