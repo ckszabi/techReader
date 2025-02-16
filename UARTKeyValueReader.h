@@ -4,7 +4,7 @@
 
 class UARTKeyValueReader {
 private:
-  SoftwareSerial mySerial;
+  Stream* mySerial; // Generic Stream pointer (works with HardwareSerial & SoftwareSerial)
   int firstByte = 0;
   uint key = 0;
   uint value = 0;
@@ -13,6 +13,9 @@ private:
   bool keyReceived = false;
   bool valueReceived = false;
   bool published = false;
+  bool awaitNextListen = true; // after publish have to wait for another listen() call for publishing to be allowed?
+  bool dataFrameEnd = false;
+  bool dataFrameBegin = false;
 
   MqttClient* mqttClient;
   keyValuePairs<int, String> keyValueStore;
@@ -25,21 +28,15 @@ private:
 
   String portName;
 
+
 public:
-  UARTKeyValueReader(int rxPin, int txPin, MqttClient* _mqttClient, keyValuePairs<int, String>* _nameMapping, String _portName)
-    : mySerial(rxPin, txPin, true), mqttClient(_mqttClient), nameMapping(_nameMapping), portName(_portName) {
-      pinMode(rxPin, INPUT);
-      pinMode(txPin, OUTPUT);
-      pinMode(LED_BUILTIN, OUTPUT);
+  UARTKeyValueReader(Stream* serialInterface, MqttClient* _mqttClient, keyValuePairs<int, String>* _nameMapping, String _portName)
+    : mySerial(serialInterface), mqttClient(_mqttClient), nameMapping(_nameMapping), portName(_portName) {
   }
 
-  void begin(long baudRate) {
-    mySerial.begin(baudRate);
-  }
-
-  void listen() {
-    mySerial.listen();
+  void listen(bool awaitNext) {
     published = false;
+    awaitNextListen = awaitNext;
 
     currentMillis = millis();
     previousPublishMillis = currentMillis;
@@ -50,6 +47,7 @@ public:
     return published;
   }
 
+
   void loop() {
     
     unsigned long lastReadMillisTemp = readKeyValuePair();
@@ -59,16 +57,17 @@ public:
 
     currentMillis = millis();
 
-    // 1. Wait on timeout from setting.h
-    // 2. Wait on silence from controller
-    if (!published && (currentMillis - previousPublishMillis >= mqttSendInterval)) { // || currentMillis - lastReadMillis > 2500
+    // wait until we got data between frame begin and end
+    if (!published && dataFrameBegin && dataFrameEnd) {
       previousPublishMillis = currentMillis;
       lastReadMillis = currentMillis;  // reset the silence detection
+      dataFrameEnd = false;
+      dataFrameBegin = false;
 
       Serial.print("Publishing on ");
       Serial.println(portName);
       sendMqttMessage(mqttClient, &keyValueStore, nameMapping, portName);
-      published = true;
+      published = awaitNextListen;
     }
   }
 
@@ -106,6 +105,14 @@ private:
       }
       #endif
 
+      if (dataFrameBegin && key == 536) {
+        dataFrameEnd = true;
+      }
+
+      if (key == 550) {
+        dataFrameBegin = true;
+      }
+
       lastReadMillis = millis();
 
       // Check existence in the key value store
@@ -127,17 +134,17 @@ private:
 
   uint16_t read2Bytes() {
     uint16_t returnValue = 0;
-    if (mySerial.available() > 0) {
+    if (mySerial->available() > 0) {
       // Flash LED to indicate read
       digitalWrite(LED_BUILTIN, LOW);
 
       if (firstByteReceived == true) {
-        returnValue = (firstByte << 8) | mySerial.read();
+        returnValue = (firstByte << 8) | mySerial->read();
         firstByte = 0;
         firstByteReceived = false;
         secondByteReceived = true;
       } else {
-        firstByte = mySerial.read();
+        firstByte = mySerial->read();
         firstByteReceived = true;
       }
 
