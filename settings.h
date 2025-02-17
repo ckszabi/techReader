@@ -23,7 +23,7 @@ const int txPin =12;  // D1 GPIO5, D2 GPIO4,  D5 GPIO14, D6 GPIO12
 const int rxPin =5; 
 
 // comment out if not desired and only one port is wired
-#define useSecondSerial
+//#define useSecondSerial
 
 #ifdef useSecondSerial
   // use SoftwareSerial on the second pair of pins
